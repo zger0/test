@@ -1,0 +1,173 @@
+package com.kh.post.model.service;
+
+import static com.kh.common.JDBCTemplate.close;
+import static com.kh.common.JDBCTemplate.commit;
+import static com.kh.common.JDBCTemplate.getConnection;
+import static com.kh.common.JDBCTemplate.rollback;
+
+import java.sql.Connection;
+import java.util.ArrayList;
+
+import com.kh.common.model.vo.Attachment;
+import com.kh.common.model.vo.PageInfo;
+import com.kh.post.model.dao.PostDao;
+import com.kh.post.model.vo.Post;
+
+public class PostService {
+
+	public int selectReviewListCount() {
+        
+        Connection conn = getConnection();
+        
+        int result = new PostDao().selectReviewListCount(conn);
+        
+        close(conn);
+        
+        return result;
+	}
+	
+	public ArrayList<Post> selectReviewList(PageInfo pi) {
+		
+        Connection conn = getConnection();
+        
+        ArrayList<Post> list = new PostDao().selectReviewList(conn, pi);
+        
+        close(conn);
+        
+        return list;
+	}
+
+	public int increaseCount(int postNum) {
+		
+        Connection conn = getConnection();
+        
+        int result = new PostDao().increaseCount(conn, postNum);
+        
+        if(result > 0) {
+        	commit(conn);
+        } else {
+        	rollback(conn);
+        }
+        
+        close(conn);
+        
+        return result;
+	}
+
+	public Post selectPost(int postNo) {
+		
+		Connection conn = getConnection();
+		
+		Post p = new PostDao().selectPost(conn, postNo);
+		
+		close(conn);
+		
+		return p;
+	}
+
+
+
+	public ArrayList<Attachment> selectAttachmentList(int PostNo) {
+		
+		Connection conn = getConnection();
+		
+		ArrayList<Attachment> list = new PostDao().selectAttachmentList(conn, PostNo);
+		
+		close(conn);
+		
+		return list;
+	}
+
+	public int insertPost(Post p, Attachment at) {
+		
+		Connection conn = getConnection();
+		
+		int result1 = new PostDao().insertPost(conn, p);
+		
+		int result2 = 1;
+
+		if(at != null) {
+			result2 = new PostDao().insertAttachment(conn, at);
+		}
+
+		if(result1 > 0 && result2 > 0) {
+			commit(conn);
+		} else {
+			rollback(conn);
+		}
+
+		close(conn);
+
+		return result1 * result2;
+	}
+
+	public Attachment selectAttachment(int postNo) {
+		
+		Connection conn = getConnection();
+		
+		Attachment at = new PostDao().selectAttachment(conn, postNo);
+		
+		close(conn);
+		
+		return at;
+	}
+
+	public int deletePost(int postNo) {
+		
+		Connection conn = getConnection();
+		
+		int result = new PostDao().deletePost(conn, postNo);
+		
+		if(result > 0) {
+			commit(conn);
+		} else {
+			rollback(conn);
+		}
+		
+		close(conn);
+		
+		return result;
+	}
+
+	public int updatePost(Post p, Attachment at) {
+		
+		Connection conn = getConnection();
+		
+		int result1 = new PostDao().updatePost(conn, p);
+		
+		int result2 = 1;
+		
+		// 새롭게 첨부된 파일이 있을 경우 
+		if(at != null) {
+			if(at.getFileNo() != 0) {
+				// case1. ATTACHMENT UPDATE => fileNo 필드값
+				result2 = new PostDao().updateAttachment(conn, at);
+			}else {
+				// case2. ATTACHMENT INSERT => refBno 필드값
+				result2 = new PostDao().insertNewAttachment(conn, at);
+			}
+			
+			if(result1 > 0 && result2 > 0) {
+				commit(conn);
+			}else {
+				rollback(conn);
+			}
+			close(conn);
+		}
+		
+		return result1 * result2;
+	}
+
+//	public ArrayList<Attachment> selectReviewFileList() {
+//		
+//		Connection conn = getConnection();
+//		
+//		ArrayList<Attachment> list = new PostDao().selectAttachmentList(conn);
+//		
+//		close(conn);
+//		
+//		return list;
+//	}
+	
+
+}
